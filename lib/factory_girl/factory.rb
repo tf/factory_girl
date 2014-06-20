@@ -11,6 +11,7 @@ module FactoryGirl
       @name             = name.respond_to?(:to_sym) ? name.to_sym : name.to_s.underscore.to_sym
       @parent           = options[:parent]
       @aliases          = options[:aliases] || []
+      @module_name      = options[:module]
       @class_name       = options[:class]
       @definition       = Definition.new(@name, options[:traits] || [])
       @compiled         = false
@@ -23,7 +24,7 @@ module FactoryGirl
       @build_class ||= if class_name.is_a? Class
         class_name
       else
-        class_name.to_s.camelize.constantize
+        class_name.constantize
       end
     end
 
@@ -98,7 +99,12 @@ module FactoryGirl
     protected
 
     def class_name
-      @class_name || parent.class_name || name
+      with_module_name(@class_name) || parent.class_name || with_module_name(name)
+    end
+
+    def with_module_name(base_name)
+      return base_name if base_name.blank? || base_name.is_a?(Class)
+      [@module_name, base_name.to_s.camelize].compact.join('::')
     end
 
     def evaluator_class
@@ -139,7 +145,7 @@ module FactoryGirl
     private
 
     def assert_valid_options(options)
-      options.assert_valid_keys(:class, :parent, :aliases, :traits)
+      options.assert_valid_keys(:class, :parent, :aliases, :traits, :module)
     end
 
     def parent

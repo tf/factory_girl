@@ -3,8 +3,8 @@ module FactoryGirl
     module Default
       include Methods
 
-      def define(&block)
-        DSL.run(block)
+      def define(default_options = {}, &block)
+        DSL.run(default_options, block)
       end
 
       def modify(&block)
@@ -12,8 +12,12 @@ module FactoryGirl
       end
 
       class DSL
+        def initialize(default_options = {})
+          @default_options = default_options
+        end
+
         def factory(name, options = {}, &block)
-          factory = Factory.new(name, options)
+          factory = Factory.new(name, options.reverse_merge(@default_options))
           proxy = FactoryGirl::DefinitionProxy.new(factory.definition)
           proxy.instance_eval(&block) if block_given?
 
@@ -45,8 +49,8 @@ module FactoryGirl
           FactoryGirl.initialize_with(&block)
         end
 
-        def self.run(block)
-          new.instance_eval(&block)
+        def self.run(default_options, block)
+          new(default_options).instance_eval(&block)
         end
 
         delegate :before, :after, :callback, to: :configuration
